@@ -13,4 +13,10 @@
 #     description: short operator-facing summary
 #
 # Example placeholder only; no script exists yet.
-tools: []
+tools:
+  - name: cert_expiry
+    path: shell/cert-expiry.sh
+    tier: t1
+    language: sh
+    argv: []
+    description: Report TLS certificate expiry for configured domains; flags any expiring within 14 days.
