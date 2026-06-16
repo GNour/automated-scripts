@@ -1,0 +1,12 @@
+# Python environments and caches
+python/.venv/
+python/.pytest_cache/
+python/.mypy_cache/
+python/.ruff_cache/
+python/**/__pycache__/
+python/**/*.py[cod]
+
+# Local environment files and secrets
+.env
+.env.*
+*.local

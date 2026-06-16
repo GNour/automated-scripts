@@ -1,0 +1,12 @@
+# Non-secret subscription metadata schema.
+# Copy to subscriptions.yaml outside git-tracked examples and fill with real data there.
+# Do not store account IDs, tokens, card details, private notes, or credentials here.
+subscriptions:
+  - name: example-service
+    renewal_date: YYYY-MM-DD
+    monthly_cost: 0.00
+    currency: USD
+  - name: another-placeholder
+    renewal_date: YYYY-MM-DD
+    monthly_cost: 0.00
+    currency: USD
