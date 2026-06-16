@@ -13,4 +13,10 @@
 #     description: short operator-facing summary
 #
 # Example placeholder only; no script exists yet.
-tools: []
+tools:
+  - name: vps_health
+    path: shell/health-report.sh
+    tier: t1
+    language: sh
+    argv: []
+    description: Report VPS host health metrics (disk, RAM, load, uptime, service status) as JSON
