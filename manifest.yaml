@@ -1,0 +1,16 @@
+# Repo-to-Hermes plugin contract.
+#
+# Each exposed tool is named here and mapped to a reviewed script entrypoint.
+# Keep argv fixed and explicit so Hermes never composes shell commands.
+#
+# Schema:
+# tools:
+#   - name: snake_case_tool_name
+#     path: shell/example.sh | python -m ops_scripts.example
+#     tier: t1 | t3
+#     language: sh | py
+#     argv: []
+#     description: short operator-facing summary
+#
+# Example placeholder only; no script exists yet.
+tools: []
