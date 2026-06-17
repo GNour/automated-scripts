@@ -14,13 +14,26 @@
 #
 # Example placeholder only; no script exists yet.
 tools:
+  # [HIGH fix] Two entries: dry-run (safe, default) and execute (T3, mutating).
+  # Hermes calls docker_cleanup first to show the operator what would be removed,
+  # then docker_cleanup_execute after echo-and-confirm approval.
   - name: docker_cleanup
+    path: shell/docker-cleanup.sh
+    tier: t3
+    language: sh
+    argv: []
+    description: >-
+      Report what would be pruned (dangling images, unused volumes, build cache)
+      as JSON with reclaimable-space estimates. No changes made. Run before
+      docker_cleanup_execute to preview scope.
+
+  - name: docker_cleanup_execute
     path: shell/docker-cleanup.sh
     tier: t3
     language: sh
     argv:
       - --yes
     description: >-
-      Prune dangling images, unused volumes, and build cache.
-      Dry-run by default; --yes executes. Never removes running containers
-      or in-use volumes. Outputs JSON to stdout.
+      Prune dangling images, unused volumes, and build cache. Requires prior
+      dry-run review (docker_cleanup) and Hermes echo-and-confirm. Never removes
+      running containers or in-use volumes. Outputs JSON summary to stdout.

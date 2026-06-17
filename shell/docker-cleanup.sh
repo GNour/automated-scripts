@@ -7,21 +7,27 @@
 #   --yes      Execute the prune. Output JSON summary of reclaimed space.
 #   --help     Print this usage and exit 0.
 #
+# --dry-run and --yes are mutually exclusive; passing both exits 1.
+#
 # Conservative targets — NEVER removes running containers or in-use volumes:
 #   · Dangling (untagged) images
-#   · Unused volumes (not referenced by any container)
+#   · Unused volumes (not referenced by any container, running or stopped)
 #   · Build cache
+#
+# Dry-run mode also reports volumes attached to stopped (non-running) containers
+# as informational — these are NOT prune targets but help operators assess scope.
 #
 # Stdout: JSON    Stderr: human-readable progress and diagnostics
 
 set -euo pipefail
 
-DRY_RUN=true
+DRY_RUN_SET=false
+YES_SET=false
 
 for arg in "$@"; do
   case "${arg}" in
-    --dry-run) DRY_RUN=true ;;
-    --yes)     DRY_RUN=false ;;
+    --dry-run) DRY_RUN_SET=true ;;
+    --yes)     YES_SET=true ;;
     --help|-h)
       cat >&2 <<'USAGE'
 Usage: docker-cleanup.sh [--dry-run] [--yes] [--help]
@@ -30,9 +36,11 @@ Usage: docker-cleanup.sh [--dry-run] [--yes] [--help]
   --yes      Execute the prune. Output JSON summary of reclaimed space.
   --help     Print this usage and exit 0.
 
+--dry-run and --yes are mutually exclusive.
+
 Conservative targets — NEVER removes running containers or in-use volumes:
   · Dangling (untagged) images
-  · Unused volumes (not referenced by any container)
+  · Unused volumes (not referenced by any container, running or stopped)
   · Build cache
 
 Stdout: JSON    Stderr: human-readable progress and diagnostics
@@ -45,6 +53,17 @@ USAGE
       ;;
   esac
 done
+
+# [LOW fix] Reject ambiguous flag combination rather than silently last-wins
+if "${DRY_RUN_SET}" && "${YES_SET}"; then
+  printf 'docker-cleanup: --dry-run and --yes are mutually exclusive\n' >&2
+  exit 1
+fi
+
+DRY_RUN=true
+if "${YES_SET}"; then
+  DRY_RUN=false
+fi
 
 for cmd in docker jq; do
   if ! command -v "${cmd}" > /dev/null 2>&1; then
@@ -81,6 +100,33 @@ collect_unused_volumes() {
     | jq -s '.'
 }
 
+# [MEDIUM fix] List named volumes mounted by stopped (non-running) containers.
+# Docker does NOT prune volumes attached to any container (running or stopped),
+# so these are informational only — surfaced so operators know what stays behind
+# and can decide whether to remove stopped containers first.
+collect_stopped_container_volumes() {
+  local cids_raw
+  cids_raw="$(docker ps -a \
+    --filter status=exited \
+    --filter status=created \
+    --filter status=paused \
+    --filter status=dead \
+    --format '{{.ID}}' 2>/dev/null || true)"
+
+  if [ -z "${cids_raw}" ]; then
+    printf '[]'
+    return 0
+  fi
+
+  local -a cids
+  mapfile -t cids <<< "${cids_raw}"
+
+  docker inspect "${cids[@]}" 2>/dev/null \
+    | jq '[.[] | . as $c | .Mounts[] | select(.Type == "volume") |
+           {"container": ($c.Name | ltrimstr("/")), "volume": .Name}]' \
+    || printf '[]'
+}
+
 # Extract reclaimable field from `docker system df` for a given type label.
 # Strips the trailing "(XX%)" annotation so only the size string is returned.
 reclaimable_for() {
@@ -108,9 +154,13 @@ build_cache_reclaimable="$(reclaimable_for "Build Cache")"
 # ── dry-run output ────────────────────────────────────────────────────────────
 
 if "${DRY_RUN}"; then
+  printf 'Collecting stopped-container volume info...\n' >&2
+  stopped_vols_json="$(collect_stopped_container_volumes)"
+
   jq -n \
     --argjson images "${images_json}" \
     --argjson volumes "${volumes_json}" \
+    --argjson stopped_vols "${stopped_vols_json}" \
     --arg img_reclaim "${images_reclaimable:-0B}" \
     --arg vol_reclaim "${volumes_reclaimable:-0B}" \
     --arg cache_reclaim "${build_cache_reclaimable:-0B}" \
@@ -125,6 +175,10 @@ if "${DRY_RUN}"; then
         dangling_images: $img_reclaim,
         unused_volumes: $vol_reclaim,
         build_cache: $cache_reclaim
+      },
+      informational: {
+        stopped_container_volumes: $stopped_vols,
+        note: "Volumes listed here are attached to stopped containers and are NOT prune targets. Remove the stopped containers first if you also want to reclaim these volumes."
       },
       warning: "Dry-run mode: no changes made. Pass --yes to execute."
     }'
