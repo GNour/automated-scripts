@@ -1,0 +1,11 @@
+name: ops_scripts
+version: 0.1.0
+description: Manifest-driven named tools for reviewed host ops scripts.
+profiles:
+  allow:
+    - ops
+  deny:
+    - family
+provides_tools: []
+requires:
+  manifest: /home/dev/projects/automated-scripts/manifest.yaml

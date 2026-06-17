@@ -32,5 +32,5 @@ mypy_path = "src"
 files = ["src", "tests"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "../hermes/tests"]
 addopts = "--strict-config --strict-markers"

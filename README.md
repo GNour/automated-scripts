@@ -26,6 +26,13 @@ All scripts print one machine-readable JSON document to stdout. Diagnostics and 
 
 Mutating commands are read-only by default: provide `--dry-run` behavior and require `--yes` before changing host state. Manifest entries for mutating commands must use `tier: t3`.
 
+
+## Hermes `ops_scripts` Plugin
+
+`hermes/plugins/ops_scripts/` reads `/home/dev/projects/automated-scripts/manifest.yaml` at runtime and registers one named Hermes tool for each manifest entry. T1 tools run immediately with fixed argv. T3 tools return the exact action and target until Hermes calls them with `confirm=true`, then execute the reviewed fixed argv on the host.
+
+The plugin is ops-profile only. Family profiles must not load `ops_scripts`.
+
 ## Python Checks
 
 ```bash
