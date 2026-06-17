@@ -13,4 +13,14 @@
 #     description: short operator-facing summary
 #
 # Example placeholder only; no script exists yet.
-tools: []
+tools:
+  - name: docker_cleanup
+    path: shell/docker-cleanup.sh
+    tier: t3
+    language: sh
+    argv:
+      - --yes
+    description: >-
+      Prune dangling images, unused volumes, and build cache.
+      Dry-run by default; --yes executes. Never removes running containers
+      or in-use volumes. Outputs JSON to stdout.
