@@ -65,7 +65,12 @@ python3 - "$STALE_HOURS" "$repo_healthy" "$snap_file" <<'PYEOF'
 import sys, json, re
 from datetime import datetime, timezone
 
-stale_hours = float(sys.argv[1])
+try:
+    stale_hours = float(sys.argv[1])
+except ValueError:
+    print(json.dumps({"error": f"invalid BACKUP_CHECK_STALE_HOURS: {sys.argv[1]}"}))
+    sys.exit(1)
+
 repo_healthy = sys.argv[2] == "true"
 
 with open(sys.argv[3]) as fh:
