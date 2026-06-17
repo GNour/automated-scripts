@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+# No workflow-level permissions — read-only by default; no secrets needed.
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends shellcheck
+
+      - name: Lint shell scripts
+        run: |
+          mapfile -t scripts < <(find shell -name '*.sh' -o -name '*.bash')
+          if [[ ${#scripts[@]} -eq 0 ]]; then
+            echo "No shell scripts found — skipping."
+          else
+            shellcheck --severity=warning "${scripts[@]}"
+          fi
+
+  python:
+    name: Python — ruff / mypy / pytest
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: python
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Install uv (cached)
+        uses: astral-sh/setup-uv@v5.4.2
+        with:
+          enable-cache: true
+          cache-dependency-glob: python/uv.lock
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Ruff
+        run: uv run ruff check .
+
+      - name: Mypy
+        run: uv run mypy src
+
+      - name: Pytest
+        run: uv run pytest
