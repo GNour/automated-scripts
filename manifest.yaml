@@ -12,5 +12,10 @@
 #     argv: []
 #     description: short operator-facing summary
 #
-# Example placeholder only; no script exists yet.
-tools: []
+tools:
+  - name: backup_check
+    path: shell/backup-check.sh
+    tier: t1
+    language: sh
+    argv: []
+    description: last restic→B2 snapshot time, age in hours, and repo health
